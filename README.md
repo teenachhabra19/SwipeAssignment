@@ -5,10 +5,10 @@ The Code base is neatly Documented
 
 In this project I used
 
-Hilt for depedency Injection
-Work Manager for uploading data to Server.
-Room for local caching of data
-shimmer for showing the loading progress (note : I had delayed responses from server for 1 sec to show shimmer)
-Picasso to load images
-splash screen to show branding image at cold start.
-Neatly Documnted Code
+1.Hilt for depedency Injection
+2.Work Manager for uploading data to Server.
+3.Room for local caching of data
+4.shimmer for showing the loading progress (note : I had delayed responses from server for 1 sec to show shimmer)
+5.Picasso to load images
+6.splash screen to show branding image at cold start.
+7.Neatly Documnted Code
