@@ -1,5 +1,5 @@
 # SwipeAssignment
-Install App From here : Drive link
+Install App From here : 
 MVVM + CLEAN Principles
 
 The Code base is neatly Documented
