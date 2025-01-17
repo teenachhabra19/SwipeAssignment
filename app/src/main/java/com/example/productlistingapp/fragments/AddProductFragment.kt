@@ -29,7 +29,7 @@ class AddProductFragment : BottomSheetDialogFragment() {
     private val addProductViewModel: AddProductViewModel by viewModels {
         ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application)
     }
-    private var selectedImageUris: List<Uri>? = null
+    private var selectedImageUri: Uri? = null
 
     companion object {
         private const val IMAGE_PICK_CODE = 1001
@@ -54,7 +54,7 @@ class AddProductFragment : BottomSheetDialogFragment() {
     private fun setupClickListeners() {
         binding.apply {
             btnAddImage.setOnClickListener {
-                pickImages()
+                pickImage()
             }
 
             btnSubmit.setOnClickListener {
@@ -67,8 +67,6 @@ class AddProductFragment : BottomSheetDialogFragment() {
         }
     }
 
-
-
     private fun showProductTypeDialog() {
         ProductTypeDialog().apply {
             setOnProductTypeSelectedListener { selectedType ->
@@ -77,10 +75,9 @@ class AddProductFragment : BottomSheetDialogFragment() {
         }.show(parentFragmentManager, "ProductTypeDialog")
     }
 
-    private fun pickImages() {
+    private fun pickImage() {
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
             type = "image/*"
-            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         }
         startActivityForResult(intent, IMAGE_PICK_CODE)
     }
@@ -93,10 +90,9 @@ class AddProductFragment : BottomSheetDialogFragment() {
             val productType = createRequestBody(binding.tvProductType.text.toString())
             val price = createRequestBody(binding.etPrice.text.toString())
             val tax = createRequestBody(binding.etTax.text.toString())
-            val imageParts = getImageMultiparts()
+            val imagePart = getImageMultipart()
 
-            Log.d(TAG, "Submitting with ${imageParts?.size ?: 0} images")
-            addProductViewModel.addProduct(productName, productType, price, tax, imageParts)
+            addProductViewModel.addProduct(productName, productType, price, tax, imagePart?.let { listOf(it) })
         }
     }
 
@@ -125,12 +121,16 @@ class AddProductFragment : BottomSheetDialogFragment() {
                 showToast("Please enter tax percentage")
                 false
             }
+            selectedImageUri == null -> {
+                showToast("Please select an image")
+                false
+            }
             else -> true
         }
     }
 
-    private fun getImageMultiparts(): List<MultipartBody.Part>? {
-        return selectedImageUris?.mapNotNull { uri ->
+    private fun getImageMultipart(): MultipartBody.Part? {
+        return selectedImageUri?.let { uri ->
             context?.let { ctx ->
                 try {
                     val file = File(ctx.cacheDir, "temp_image_${System.currentTimeMillis()}.jpg")
@@ -142,7 +142,7 @@ class AddProductFragment : BottomSheetDialogFragment() {
 
                     if (!file.exists() || file.length() <= 0) {
                         Log.e(TAG, "File creation failed or is empty")
-                        return@mapNotNull null
+                        return@let null
                     }
 
                     Log.d(TAG, "File created: ${file.absolutePath}, Size: ${file.length()}")
@@ -175,11 +175,9 @@ class AddProductFragment : BottomSheetDialogFragment() {
         }
     }
 
-    private fun handleApiResponse(response: Response<AddProduct>)
-    {
+    private fun handleApiResponse(response: Response<AddProduct>) {
         if (response.isSuccessful) {
             showToast("Product added successfully")
-            // Notify parent fragment to refresh
             (parentFragment as? ProductListingFragment)?.refreshProducts()
             dismiss()
         } else {
@@ -192,19 +190,10 @@ class AddProductFragment : BottomSheetDialogFragment() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == IMAGE_PICK_CODE && resultCode == Activity.RESULT_OK) {
-            val clipData = data?.clipData
-            val uriList = mutableListOf<Uri>()
-
-            if (clipData != null) {
-                for (i in 0 until clipData.itemCount) {
-                    clipData.getItemAt(i).uri?.let { uriList.add(it) }
-                }
-            } else {
-                data?.data?.let { uriList.add(it) }
+            selectedImageUri = data?.data
+            selectedImageUri?.let {
+                Log.d(TAG, "Selected Image: $it")
             }
-
-            selectedImageUris = uriList
-            Log.d(TAG, "Selected Images: $selectedImageUris")
         }
     }
 

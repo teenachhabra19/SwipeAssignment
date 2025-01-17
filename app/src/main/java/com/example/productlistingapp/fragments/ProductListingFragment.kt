@@ -1,5 +1,4 @@
 package com.example.productlistingapp.fragments
-
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -18,6 +17,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.example.productlistingapp.R
 import com.example.productlistingapp.adapter.ProductAdapter
 import com.example.productlistingapp.db.NetworkUtils
@@ -30,6 +31,7 @@ class ProductListingFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var productAdapter: ProductAdapter
     private lateinit var addProductViewModel: AddProductViewModel
+    private var initiallyStartedWithInternet = false
     private lateinit var searchView: SearchView
     private lateinit var productViewModel: ProductViewModel
     private lateinit var fab: FloatingActionButton
@@ -57,21 +59,67 @@ class ProductListingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         initializeViews(view)
+        setupFab()
         initializeNetworkCallback()
-
+        observeWorkManager()
         if (NetworkUtils.isNetworkAvailable(requireContext())) {
-            setupRecyclerView()
-            checkPermissions()
-            observeData()
-            setupSearchView()
-            setupFab()
+            initiallyStartedWithInternet = true
+            setupInitialState()
         } else {
+            initiallyStartedWithInternet = false
             showNoInternetScreen()
         }
 
         childFragmentManager.setFragmentResultListener("product_added", viewLifecycleOwner) { _, _ ->
             refreshProducts()
         }
+    }
+    private fun observeWorkManager() {
+        WorkManager.getInstance(requireContext())
+            .getWorkInfosForUniqueWorkLiveData("product_sync")
+            .observe(viewLifecycleOwner) { workInfoList ->
+                workInfoList?.forEach { workInfo ->
+                    when (workInfo.state) {
+                        WorkInfo.State.SUCCEEDED -> {
+                            // Refresh the product list when sync is complete
+                            if (NetworkUtils.isNetworkAvailable(requireContext())) {
+                                refreshProducts()
+                            }
+                        }
+                        WorkInfo.State.FAILED -> {
+                            Toast.makeText(
+                                requireContext(),
+                                "Failed to sync some products",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        else -> {
+                            // Handle other states if needed
+                        }
+                    }
+                }
+            }
+    }
+    override fun onResume() {
+        super.onResume()
+        // Check for any pending syncs when fragment resumes
+        if (NetworkUtils.isNetworkAvailable(requireContext())) {
+            WorkManager.getInstance(requireContext())
+                .getWorkInfosForUniqueWork("product_sync")
+                .get()
+                ?.forEach { workInfo ->
+                    if (workInfo.state == WorkInfo.State.SUCCEEDED) {
+                        refreshProducts()
+                    }
+                }
+        }
+    }
+
+    private fun setupInitialState() {
+        setupRecyclerView()
+        checkPermissions()
+        observeData()
+        setupSearchView()
     }
 
     private fun initializeViews(view: View) {
@@ -93,16 +141,21 @@ class ProductListingFragment : Fragment() {
         networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 requireActivity().runOnUiThread {
+                    initiallyStartedWithInternet = true
                     if (noInternetLayout.visibility == View.VISIBLE) {
                         hideNoInternetScreen()
-                        refreshProducts()
+                        setupInitialState()
                     }
                 }
             }
 
             override fun onLost(network: Network) {
                 requireActivity().runOnUiThread {
-                    showNoInternetScreen()
+                    if (!initiallyStartedWithInternet) {
+                        showNoInternetScreen()
+                    } else {
+                        Toast.makeText(requireContext(), "Internet connection lost", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
@@ -121,6 +174,11 @@ class ProductListingFragment : Fragment() {
 
     private fun setupRecyclerView() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        // Initialize adapter with empty list if it hasn't been initialized
+        if (!::productAdapter.isInitialized) {
+            productAdapter = ProductAdapter(emptyList())
+            recyclerView.adapter = productAdapter
+        }
     }
 
     private fun checkPermissions() {
@@ -143,26 +201,31 @@ class ProductListingFragment : Fragment() {
     private fun setupSearchView() {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                productAdapter.filterList(query)
+                if (::productAdapter.isInitialized) {
+                    productAdapter.filterList(query)
+                }
                 return false
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                productAdapter.filterList(newText)
+                if (::productAdapter.isInitialized) {
+                    productAdapter.filterList(newText)
+                }
                 return false
             }
         })
     }
 
     private fun setupFab() {
+        // Keep FAB visible at all times
+        fab.visibility = View.VISIBLE
+
         fab.setOnClickListener {
-            if (NetworkUtils.isNetworkAvailable(requireContext())) {
-                AddProductFragment().show(childFragmentManager, "AddProductFragment")
-            } else {
-                Toast.makeText(requireContext(), "No internet connection", Toast.LENGTH_SHORT).show()
-            }
+            // Open AddProductFragment regardless of network state
+            AddProductFragment().show(childFragmentManager, "AddProductFragment")
         }
     }
+
 
     private fun startLoading() {
         shimmerFrameLayout.startShimmer()

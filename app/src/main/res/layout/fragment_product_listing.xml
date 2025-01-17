@@ -24,8 +24,8 @@
 
         <SearchView
             android:id="@+id/searchView"
-            android:layout_width="245dp"
-            android:layout_height="40dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginLeft="45dp"
             android:background="@android:color/white"
@@ -75,7 +75,7 @@
     <LinearLayout
         android:id="@+id/noInternetLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
         android:visibility="gone"
