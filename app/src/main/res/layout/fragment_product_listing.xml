@@ -21,6 +21,7 @@
             android:layout_height="30dp"
             android:src="@drawable/swipe_logo_night"
             android:layout_marginEnd="8dp"/>
+<!--        Search View-->
 
         <SearchView
             android:id="@+id/searchView"

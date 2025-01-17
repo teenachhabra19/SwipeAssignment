@@ -59,9 +59,11 @@ class ProductListingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         initializeViews(view)
-        setupFab()
+        setupFab() // Always setup FAB regardless of network state
         initializeNetworkCallback()
         observeWorkManager()
+
+        // Check if the network is available when the app starts
         if (NetworkUtils.isNetworkAvailable(requireContext())) {
             initiallyStartedWithInternet = true
             setupInitialState()
@@ -298,3 +300,4 @@ class ProductListingFragment : Fragment() {
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
 }
+//done

@@ -206,3 +206,4 @@ class AddProductFragment : BottomSheetDialogFragment() {
         _binding = null
     }
 }
+//done
