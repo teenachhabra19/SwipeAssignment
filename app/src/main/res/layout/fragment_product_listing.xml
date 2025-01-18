@@ -36,10 +36,7 @@
             android:queryHint="Search"
             android:imeOptions="actionDone"
             android:inputType="text"
-            android:maxLines="1"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:singleLine="true" />
+            android:maxLines="1" />
     </LinearLayout>
 
     <com.facebook.shimmer.ShimmerFrameLayout
