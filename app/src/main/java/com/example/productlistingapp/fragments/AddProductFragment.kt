@@ -121,10 +121,6 @@ class AddProductFragment : BottomSheetDialogFragment() {
                 showToast("Please enter tax percentage")
                 false
             }
-            selectedImageUri == null -> {
-                showToast("Please select an image")
-                false
-            }
             else -> true
         }
     }
@@ -206,4 +202,3 @@ class AddProductFragment : BottomSheetDialogFragment() {
         _binding = null
     }
 }
-//done
